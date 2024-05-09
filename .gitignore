@@ -6,3 +6,4 @@ util/__pycache__
 *.dot
 *.json
 *.txt
+!requirements.txt

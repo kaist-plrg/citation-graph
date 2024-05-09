@@ -100,62 +100,38 @@ class Node:
 
     @staticmethod
     def from_url(url: str, k: int, parent_title: str) -> tuple["Node", list["Node"]]:
-        print(url)
-        try:
-            soup = get_soup(url)
-            title = extract_title(soup)
-            year = extract_year(soup)
-            conference = extract_conference(soup)
+        while True:
+            print(url)
+            try:
+                soup = get_soup(url)
+                title = extract_title(soup)
+                year = extract_year(soup)
+                conference = extract_conference(soup)
 
-            if title is None:
-                print("Could not extract title from", url)
+                if title is None:
+                    print("Could not extract title from", url)
+                    return None, []
+                if year is None:
+                    print("Could not extract year from", url)
+                    return None, []
+                if conference is None:
+                    print("Could not extract conference from", url)
+                    return None, []
+
+                ref_list = extract_ref_list(soup)
+                ref_list = ref_list if ref_list else []
+
+                children = [
+                    Node.from_ref_tag(title, ref_tag, k + 1) for ref_tag in ref_list
+                ]
+                return Node(k, title, parent_title, year, conference, url), children
+            except requests.exceptions.HTTPError as e:
+                print(e)
+                time.sleep(random.uniform(2, 4))
+                continue
+            except Exception as e:
+                print(e)
                 return None, []
-            if year is None:
-                print("Could not extract year from", url)
-                return None, []
-            if conference is None:
-                print("Could not extract conference from", url)
-                return None, []
-
-            ref_list = extract_ref_list(soup)
-            ref_list = ref_list if ref_list else []
-
-            children = [
-                Node.from_ref_tag(title, ref_tag, k + 1) for ref_tag in ref_list
-            ]
-            return Node(k, title, parent_title, year, conference, url), children
-        except requests.exceptions.HTTPError as e:
-            print(e)
-            return None, None
-        except Exception as e:
-            print(e)
-            return None, []
-
-
-@dataclass
-class ACMNode:
-    title: str
-    year: str
-    conference: str
-    url: str
-    children: list[Node] = field(default_factory=list)
-
-    @staticmethod
-    def from_url(url: str, depth: int = 1) -> "ACMNode":
-        print(url)
-        soup = get_soup(url)
-        title = extract_title(soup)
-        year = extract_year(soup)
-        conference = extract_conference(soup)
-        if title is None or year is None or conference is None:
-            print("Could not extract title, year, or conference from", url)
-            return None
-        elif depth <= 0:
-            return ACMNode(title, year, conference, url)
-        else:
-            ref_list = extract_ref_list(soup)
-            children = [Node.from_ref_tag(ref_tag, depth - 1) for ref_tag in ref_list]
-            return ACMNode(title, year, conference, url, children)
 
 
 if __name__ == "__main__":

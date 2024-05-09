@@ -1,6 +1,9 @@
+from collections import Counter
 from dataclasses import dataclass, field
 
 from dataclasses_json import dataclass_json
+import networkx as nx
+from networkx.drawing.nx_pydot import write_dot
 
 from util.node import Node
 
@@ -54,7 +57,7 @@ class CitationGraph:
 
     def append_node_from_url(self, url: str, k: int, parent_title: str = "") -> bool:
         node, children = Node.from_url(url, k, parent_title)
-        if children is None:
+        if children is None:  # 403 Forbidden
             return False
         elif not node:
             return True
@@ -78,7 +81,7 @@ class CitationGraph:
                         node.url, node.curr_k, node.parent_title
                     )
                     if not append_res:
-                        return False
+                        return None
                 else:
                     self.append_node(node)
                     return self.step()
@@ -92,6 +95,34 @@ class CitationGraph:
         title = alternative_filename if alternative_filename else self.title
         with open(f"{title}.json", "w") as f:
             f.write(self.to_json(indent=4))
+
+    def export_dot_file(self, min_impact: int = 3):
+        counter = Counter([child for _, child in self.edges])
+        edges = [
+            (parent, child)
+            for parent, child in self.edges
+            if counter[child] >= min_impact
+        ]
+        nodes = sorted(
+            set([node for edge in edges for node in edge]),
+            key=lambda x: counter[x],
+            reverse=True,
+        )
+        node_to_index = {node: i for i, node in enumerate(nodes)}
+
+        nxgraph = nx.DiGraph()
+        nxgraph.add_nodes_from([(i, {"title": i}) for i, _ in enumerate(nodes)])
+
+        edges_index = [
+            (node_to_index[parent], node_to_index[child]) for parent, child in edges
+        ]
+
+        nxgraph.add_edges_from(edges_index)
+
+        write_dot(nxgraph, self.title + ".dot")
+
+        with open(self.title + "_index.txt", "w") as f:
+            f.writelines([f"{i:4} {node}\n" for i, node in enumerate(nodes)])
 
     @staticmethod
     def from_json_file(filename: str) -> "CitationGraph":
@@ -175,21 +206,22 @@ if __name__ == "__main__":
         # QDiff: Differential Testing of Quantum Software Stacks
         "https://dl.acm.org/doi/10.1109/ASE51524.2021.9678792",
     ]
-    # graph = CitationGraph(
-    #     title="quantum_test",
-    #     seed_url_list=quantum_seed_url_list,
-    #     # seed_url_list=["https://dl.acm.org/doi/10.1145/3519939.3523443"],
-    #     # seed_url_list=["https://dl.acm.org/doi/10.1145/507669.507658"],
-    #     k=2,
-    # )
-    graph = CitationGraph.from_json_file("quantum_test.json")
-    ref_count = dict()https://dl.acm.org/doi/10.1145/3571225
-    # for parent, child in graph.edges:
+    graph = CitationGraph(
+        title="quantum_pl",
+        seed_url_list=quantum_seed_url_list,
+        k=3,
+    )
+    graph = CitationGraph.from_json_file("quantum_pl.json")
 
     # graph.init_seed()
-    # while True:
-    #     if not graph.step():
-    #         break
-    #     else:
-    #         print(f"Nodes: {len(graph.nodes)}, Pending: {len(graph.pending_node_list)}")
-    #         graph.dump_json_file()
+
+    while True:
+        step_res = graph.step()
+        if step_res is None:
+            error_403 = True
+            break
+        elif step_res is False:
+            break
+        else:
+            print(f"Nodes: {len(graph.nodes)}, Pending: {len(graph.pending_node_list)}")
+            graph.dump_json_file()

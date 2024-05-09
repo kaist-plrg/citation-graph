@@ -1,66 +1,60 @@
-from collections import defaultdict, Counter
-
-import networkx as nx
-import matplotlib.pyplot as plt
-import pydot
-from networkx.drawing.nx_pydot import write_dot
+from os import path
+import argparse
 
 from util.graph import CitationGraph
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "seed_url_file", type=str, help="file containing acm digital library seed urls"
+)
+parser.add_argument(
+    "--depth",
+    type=int,
+    default=2,
+    help="maximum depth of the graph. default is 2",
+)
+parser.add_argument(
+    "--min-impact",
+    type=int,
+    default=3,
+    help="minimum impact to be included in the final graph. default is 3",
+)
+
 if __name__ == "__main__":
-    graph = CitationGraph.from_json_file("quantum_test.json")
+    args = parser.parse_args()
+    graph_title = args.seed_url_file.split(".")[0]
+    min_impact = args.min_impact
+    graph_k = args.depth
+    if graph_k < 1:
+        print("Depth must be greater than 0")
+        exit(1)
 
-    counter = Counter([child for _, child in graph.edges])
+    if min_impact < 1:
+        print("Minimum impact must be greater than 0")
+        exit(1)
 
-    print(*counter.most_common(10), sep="\n")
+    with open(args.seed_url_file, "r") as f:
+        seed_url_list = [url.strip() for url in f.readlines()]
 
-    edges_filtered = [
-        (parent, child) for parent, child in graph.edges if counter[child] > 2
-    ]
+    if not path.exists(graph_title + ".json"):
+        if not path.exists(args.seed_url_file):
+            print("Seed file not found")
+            exit(1)
 
-    nodes_filtered = list(set([node for edge in edges_filtered for node in edge]))
-    node_to_index = {node: i for i, node in enumerate(nodes_filtered)}
+        graph = CitationGraph(graph_title, seed_url_list, graph_k)
+        graph.init_seed()
+    else:
+        print("Loading existing json file")
+        graph = CitationGraph.from_json_file(graph_title + ".json")
 
-    nxgraph = nx.DiGraph()
-    nxgraph.add_nodes_from([(i, {"title": i}) for i, node in enumerate(nodes_filtered)])
+    while True:
+        if graph.step():
+            print(f"Nodes: {len(graph.nodes)}, Pending: {len(graph.pending_node_list)}")
+            graph.dump_json_file()
+        else:
+            break
 
-    citations = [
-        (node_to_index[parent], node_to_index[child])
-        for parent, child in edges_filtered
-    ]
+    graph.export_dot_file(min_impact)
 
-    nxgraph.add_edges_from(citations)
-
-    write_dot(nxgraph, "quantum_test.dot")
-
-    with open("quantum_test.txt", "w") as f:
-        f.writelines([f"{i:3} {node}\n" for i, node in enumerate(nodes_filtered)])
-
-    # # Position nodes using the spring layout
-    # pos = nx.kamada_kawai_layout(nxgraph)
-    # # pos = nx.circular_layout(nxgraph)
-    # # pos = nx.spring_layout(nxgraph)
-
-    # # Draw nodes
-    # nx.draw(
-    #     nxgraph,
-    #     pos,
-    #     with_labels=False,
-    #     node_color="skyblue",
-    #     node_size=100,
-    #     edge_color="k",
-    #     linewidths=1,
-    #     font_size=2,
-    # )
-
-    # # Draw node labels
-    # labels = nx.get_node_attributes(nxgraph, "title")
-    # nx.draw_networkx_labels(nxgraph, pos, labels, font_size=8)
-
-    # # Draw edges with arrows
-    # nx.draw_networkx_edges(
-    #     nxgraph, pos, edgelist=citations, arrowstyle="->", arrowsize=5
-    # )
-
-    # # Show the nxgraph
-    # plt.show()
+    print("Done")
