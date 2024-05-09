@@ -61,3 +61,6 @@ $ dot -Tpdf programming_language.dot > programming_language.pdf
 Every progress will be printed on the console and will be saved in JSON files
 and can be resumed by running the script again with the same seed URL file.
 
+## Result
+<img width="2447" alt="image" src="https://github.com/kaist-plrg/acm-citgraph-crawler/assets/68288688/9f8c41ce-39b9-4982-b065-1dd643bbc58e">
+
