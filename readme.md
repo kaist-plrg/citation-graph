@@ -59,7 +59,8 @@ Running the script will generate a dot file `programming_languages.dot` file
 script) containing the citation graph, which can be visualized using Graphviz:
 
 ## Result Visualization
-<img width="2447" alt="image" src="https://github.com/kaist-plrg/acm-citgraph-crawler/assets/68288688/9f8c41ce-39b9-4982-b065-1dd643bbc58e">
+<img width="2667" alt="image" src="https://github.com/kaist-plrg/citation-graph/assets/68288688/6986661b-f334-4403-9c10-d8ee51e80a09">
+
 
 Explore the titles in the `programming_languages_index.txt` file using index numbers referenced in the dot file.
 
