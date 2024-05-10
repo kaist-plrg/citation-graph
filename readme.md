@@ -1,52 +1,34 @@
-<span style="color:red;font-size:2em">
+# Citation Graph Generator
 
-**⚠️ DO NOT RUN THIS USING PLRG/KAIST WIFI NETWORK ⚠️**
+This script generates a citation graph using Semantic Scholar API
 
-**⚠️ DO NOT RUN THIS USING PLRG/KAIST WIFI NETWORK ⚠️**
-
-**⚠️ DO NOT RUN THIS USING PLRG/KAIST WIFI NETWORK ⚠️**
-
-</span>
-
-# ACM Digital Library Citation Graph Generator
-
-This script generates a citation graph from the ACM Digital Library website.
-
-**Important Notice: Do not run this script using PLRG/KAIST wifi network.** You may be blocked from
-accessing the ACM Digital Library website, and the manager of the KAIST Academic
-Information Office may come to see you.
-
-It is recommended to run this script using a personal network such as a mobile
-hotspot because cellular network on mobile phones always assigns a new IP.
-
-Crawling speed is randomly limited from 5 to 10 seconds per request to avoid being
-blocked by the website. The script will take a while to finish, so you can go to
-bed after running the script.
+It is recommended to get an API key from Semantic Scholar to avoid rate limiting. ([Link](https://www.semanticscholar.org/product/api#api-key))
+If you have an API key, you can set it as an environment variable `SS_API_KEY`.
 
 ## Requirements
 
 * Python 3 (tested on 3.12.3)
 * Python packages: `pip install -r requirements.txt`
-* Internet connection **(not using PLRG/KAIST network)**
 
 ## Usage
 
 Execute the script from the command line as follows:
 
 ```bash
-$ python main.py <seed-url-file> --depth <depth> --min-impact <min-impact>
+$ python main.py <seed-id-file> --depth <depth> --min-impact <min-impact>
 ```
 
-* `<seed-url-file>` : A text file containing URLs from the ACM Digital Library. Each URL serves as a starting point to build the citation graph.
+* `<seed-id-file>` : A text file containing paper IDs from the Semantic Scholar website. To obtain the paper ID, visit the paper page and extract the ID from the URL (e.g., `https://www.semanticscholar.org/paper/paper-title-goes-here/<paper-id>`). Each ID serves as a starting point to build the citation graph.
 * `<depth>`: The maximum citation depth (optional, default is 2).
 * `<min-impact>` The minimum number of citations needed for a paper to be included in the output (optional, default is 3).
 
 ### Example
 
-Assuming the seed URLs are in a file named `programming_languages.txt`
+Assuming the seed paper IDs are in a file named `programming_languages.txt`
 ```
-https://dl.acm.org/doi/10.1145/3591270
-https://dl.acm.org/doi/10.1145/3591254
+c54604dcc058b7526035d93646f2d7dec2c46668
+064a00bfbead824626f698b8f7595b5a40e8d82b
+450fe9db1def1800a98c0a633857b383910e0afc
 ...
 ```
 
@@ -66,7 +48,7 @@ dot -Tpdf programming_language.dot > programming_language.pdf
 ## Output and Monitoring
 
 * Progress is displayed in the console and saved in JSON format, allowing for
-process resumption using the same seed URL file.
+process resumption using the same seed file.
 * The resulting `programming_languages.dot` and `programming_languages_index.txt`
 files contain the citation graph and a list of paper titles indexed by
 descending citation count, respectively.

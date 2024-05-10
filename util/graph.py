@@ -5,7 +5,7 @@ from dataclasses_json import dataclass_json
 import networkx as nx
 from networkx.drawing.nx_pydot import write_dot
 
-from util.node import Node
+from util.node import Node, Prenode
 
 
 @dataclass_json
@@ -13,87 +13,83 @@ from util.node import Node
 class CitationGraph:
     title: str
     k: int
-    seed_url_list: list[str]
-    pending_node_list: list[Node] = field(default_factory=list)
+    seed_title_ids: list[str]
+    pending_prenodes: list[Prenode] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     edges: list[tuple[str, str]] = field(default_factory=list)
 
-    def title_exists(self, title: str) -> bool:
+    def paper_id_exists(self, paper_id: str) -> bool:
         for node in self.nodes:
-            if node.title == title:
+            if node.paper_id == paper_id:
                 return True
         return False
 
-    def find_by_title(self, title: str) -> Node:
+    def find_by_paper_id(self, paper_id: str) -> Node:
         for node in self.nodes:
-            if node.title == title:
+            if node.paper_id == paper_id:
                 return node
         return None
 
-    def append_node(self, node: Node):
-        self.nodes.append(node)
-        if node.parent_title:
-            self.edges.append((node.parent_title, node.title))
+    def paper_id_to_title(self, paper_id: str) -> str:
+        node = self.find_by_paper_id(paper_id)
+        return node.title if node else ""
 
     def update_k(self, title: str, new_k: int):
-        node = self.find_by_title(title)
+        node = self.find_by_paper_id(title)
         if node is None:
             return
         if node.curr_k <= new_k or self.k <= new_k:
             return
         if node.curr_k == self.k:  # update k and extend the graph
             node.curr_k = new_k
-            if node.url:
-                _, children = Node.from_url(node.url, new_k, node.parent_title)
-                children = children if children else []
-                for child in children:
-                    if child.curr_k <= self.k:
-                        self.pending_node_list.append(child)
+            _, children = Node.from_paper_id(node.paper_id, new_k)
+            for child in children:
+                if child.curr_k <= self.k and child.paper_id is not None:
+                    self.pending_prenodes.append(child)
         else:  # only update k
             node.curr_k = new_k
             for parent_title, child_title in self.edges:
                 if parent_title == title:
                     self.update_k(child_title, new_k + 1)
 
-    def append_node_from_url(self, url: str, k: int, parent_title: str = "") -> bool:
-        node, children = Node.from_url(url, k, parent_title)
-        if children is None:  # 403 Forbidden
-            return False
-        elif not node:
-            return True
-        self.append_node(node)
-        for child in children:
-            if child.curr_k <= self.k:
-                self.pending_node_list.append(child)
-        return True
-
     def init_seed(self):
         if not self.nodes:
-            for seed_url in self.seed_url_list:
-                self.append_node_from_url(seed_url, 0)
+            for seed_url in self.seed_title_ids:
+                self.pending_prenodes.append(Prenode(curr_k=0, paper_id=seed_url))
 
     def step(self) -> bool:
-        if self.pending_node_list:
-            node = self.pending_node_list.pop()
-            if node.curr_k <= self.k and not self.title_exists(node.title):
-                if node.url:
-                    append_res = self.append_node_from_url(
-                        node.url, node.curr_k, node.parent_title
-                    )
-                    if not append_res:
-                        return None
-                else:
-                    self.append_node(node)
-                    return self.step()
-            elif self.title_exists(node.title):
-                self.update_k(node.title, node.curr_k)
+        if self.pending_prenodes:
+            curr_prenodes = []
+            while len(curr_prenodes) < 400:
+                prenode = self.pending_prenodes.pop()
+                if prenode.curr_k <= self.k and not self.paper_id_exists(
+                    prenode.paper_id
+                ):
+                    curr_prenodes.append(prenode)
+                elif self.paper_id_exists(prenode.paper_id):
+                    self.update_k(prenode.paper_id, prenode.curr_k)  # update k
+                if not self.pending_prenodes:
+                    break
+
+            if not curr_prenodes:
+                return False
+
+            self.edges.extend(
+                [(prenode.parent_id, prenode.paper_id) for prenode in curr_prenodes]
+            )
+
+            nodes, pending_nodes = Node.from_prenodes(curr_prenodes)
+
+            self.nodes.extend(nodes)
+            self.pending_prenodes.extend(pending_nodes)
+
             return True
         else:
             return False
 
     def dump_json_file(self, alternative_filename: str = None):
         title = alternative_filename if alternative_filename else self.title
-        with open(f"{title}.json", "w") as f:
+        with open(f"{title}_k{self.k}.json", "w") as f:
             f.write(self.to_json(indent=4))
 
     def export_dot_file(self, min_impact: int = 3):
@@ -122,7 +118,12 @@ class CitationGraph:
         write_dot(nxgraph, self.title + ".dot")
 
         with open(self.title + "_index.txt", "w") as f:
-            f.writelines([f"{i:4} {node}\n" for i, node in enumerate(nodes)])
+            f.writelines(
+                [
+                    f"{i:4} {self.paper_id_to_title(node)}\n"
+                    for i, node in enumerate(nodes)
+                ]
+            )
 
     @staticmethod
     def from_json_file(filename: str) -> "CitationGraph":
@@ -206,22 +207,18 @@ if __name__ == "__main__":
         # QDiff: Differential Testing of Quantum Software Stacks
         "https://dl.acm.org/doi/10.1109/ASE51524.2021.9678792",
     ]
-    graph = CitationGraph(
-        title="quantum_pl",
-        seed_url_list=quantum_seed_url_list,
-        k=3,
-    )
-    graph = CitationGraph.from_json_file("quantum_pl.json")
+    # graph = CitationGraph(
+    #     title="quantum_pl",
+    #     seed_title_ids=quantum_seed_url_list,
+    #     k=3,
+    # )
+    # graph = CitationGraph.from_json_file("quantum_pl.json")
 
     # graph.init_seed()
 
     while True:
-        step_res = graph.step()
-        if step_res is None:
-            error_403 = True
-            break
-        elif step_res is False:
-            break
-        else:
-            print(f"Nodes: {len(graph.nodes)}, Pending: {len(graph.pending_node_list)}")
+        if graph.step():
+            print(f"Nodes: {len(graph.nodes)}, Pending: {len(graph.pending_prenodes)}")
             graph.dump_json_file()
+        else:
+            break

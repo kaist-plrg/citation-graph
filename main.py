@@ -5,9 +5,7 @@ from util.graph import CitationGraph
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument(
-    "seed_url_file", type=str, help="file containing acm digital library seed urls"
-)
+parser.add_argument("seed_id_file", type=str, help="file containing seed paper ids")
 parser.add_argument(
     "--depth",
     type=int,
@@ -23,7 +21,7 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    graph_title = args.seed_url_file.split(".")[0]
+    graph_title = args.seed_id_file.split(".")[0]
     min_impact = args.min_impact
     graph_k = args.depth
     if graph_k < 1:
@@ -34,23 +32,24 @@ if __name__ == "__main__":
         print("Minimum impact must be greater than 0")
         exit(1)
 
-    with open(args.seed_url_file, "r") as f:
-        seed_url_list = [url.strip() for url in f.readlines()]
+    with open(args.seed_id_file, "r") as f:
+        seed_id_list = [paper_id.strip() for paper_id in f.readlines()]
 
-    if not path.exists(graph_title + ".json"):
-        if not path.exists(args.seed_url_file):
+    json_file = f"{graph_title}_k{graph_k}.json"
+    if not path.exists(json_file):
+        if not path.exists(args.seed_id_file):
             print("Seed file not found")
             exit(1)
 
-        graph = CitationGraph(graph_title, seed_url_list, graph_k)
+        graph = CitationGraph(graph_title, graph_k, seed_id_list)
         graph.init_seed()
     else:
         print("Loading existing json file")
-        graph = CitationGraph.from_json_file(graph_title + ".json")
+        graph = CitationGraph.from_json_file(json_file)
 
     while True:
         if graph.step():
-            print(f"Nodes: {len(graph.nodes)}, Pending: {len(graph.pending_node_list)}")
+            print(f"Nodes: {len(graph.nodes)}, Pending: {len(graph.pending_prenodes)}")
             graph.dump_json_file()
         else:
             break
