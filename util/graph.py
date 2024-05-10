@@ -41,11 +41,8 @@ class CitationGraph:
         if node.curr_k <= new_k or self.k <= new_k:
             return
         if node.curr_k == self.k:  # update k and extend the graph
-            node.curr_k = new_k
-            _, children = Node.from_paper_id(node.paper_id, new_k)
-            for child in children:
-                if child.curr_k <= self.k and child.paper_id is not None:
-                    self.pending_prenodes.append(child)
+            self.nodes.remove(node)
+            self.pending_prenodes.append(Prenode(curr_k=new_k, paper_id=node.paper_id))
         else:  # only update k
             node.curr_k = new_k
             for parent_title, child_title in self.edges:
@@ -115,9 +112,9 @@ class CitationGraph:
 
         nxgraph.add_edges_from(edges_index)
 
-        write_dot(nxgraph, self.title + ".dot")
+        write_dot(nxgraph, f"{self.title}_k{self.k}.dot")
 
-        with open(self.title + "_index.txt", "w") as f:
+        with open(f"{self.title}_k{self.k}_index.txt", "w") as f:
             f.writelines(
                 [
                     f"{i:4} {self.paper_id_to_title(node)}\n"

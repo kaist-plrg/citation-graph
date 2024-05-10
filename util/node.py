@@ -31,7 +31,10 @@ def request_uids(paper_ids: list[str]):
         if res.status_code == 200:
             return [j for j in res.json() if j is not None]
         else:
-            print(f"{res.status_code}: {res.reason} ... Retrying in 5 seconds")
+            print(
+                f"{res.status_code}: {res.json()['message']} ... Retrying in 10 seconds"
+            )
+            time.sleep(10)
 
 
 def request_uid(paper_id: str):
@@ -50,7 +53,10 @@ def request_uid(paper_id: str):
         if res.status_code == 200:
             return res.json()
         else:
-            print(f"{res.status_code}: {res.reason} ... Retrying in 5 seconds")
+            print(
+                f"{res.status_code}: {res.json()['message']} ... Retrying in 10 seconds"
+            )
+            time.sleep(10)
 
 
 @dataclass
@@ -102,6 +108,8 @@ class Node:
             node_year = res_json["year"]
 
             if node_paper_id is None or node_title is None or node_year is None:
+                continue
+            if node_title == "":
                 continue
 
             references = res_json.get("references", [])
