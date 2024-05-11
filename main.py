@@ -39,7 +39,7 @@ if __name__ == "__main__":
         print("Minimum impact must be greater than 0")
         exit(1)
 
-    json_file = f"{graph_title}_k{graph_k}_{"_".join(keywords)}.json"
+    json_file = f"{graph_title}_k{graph_k}_{'_'.join(keywords)}.json"
     if not path.exists(json_file):
         if not path.exists(args.seed_id_file):
             print("Seed file not found")

@@ -36,7 +36,7 @@ class CitationGraph:
         return node.title if node else ""
 
     def filename(self) -> str:
-        return f"{self.title}_k{self.k}_{"_".join(self.keywords)}"
+        return f"{self.title}_k{self.k}_{'_'.join(self.keywords)}"
 
     def update_k(self, title: str, new_k: int):
         node = self.find_by_paper_id(title)
@@ -77,9 +77,7 @@ class CitationGraph:
 
             nodes, pending_nodes = Node.from_prenodes(curr_prenodes, self.keywords)
 
-            self.edges.extend(
-                [(node.parent_id, node.paper_id) for node in nodes]
-            )
+            self.edges.extend([(node.parent_id, node.paper_id) for node in nodes])
 
             self.nodes.extend(nodes)
             self.pending_prenodes.extend(pending_nodes)
