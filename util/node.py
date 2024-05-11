@@ -93,7 +93,7 @@ class Node:
             node_title = res_json["title"]
             node_year = res_json["year"]
             node_abstract = res_json.get("abstract", "")
-            summary = node_title + node_abstract
+            summary = (node_title + node_abstract).lower()
 
             if node_paper_id is None or node_title is None or node_year is None:
                 continue

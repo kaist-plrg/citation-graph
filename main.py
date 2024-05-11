@@ -30,7 +30,7 @@ if __name__ == "__main__":
     graph_title = args.seed_id_file.split(".")[0]
     min_impact = args.min_impact
     graph_k = args.depth
-    keywords = [keyword for keyword in args.keywords.split(",") if keyword]
+    keywords = [keyword.lower() for keyword in args.keywords.split(",") if keyword]
     if graph_k < 1:
         print("Depth must be greater than 0")
         exit(1)
