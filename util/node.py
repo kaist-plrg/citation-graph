@@ -23,7 +23,7 @@ def request_uids(paper_ids: list[str]):
         headers = {"x-api-key": api_key} if api_key else {}
         res = requests.post(
             "https://api.semanticscholar.org/graph/v1/paper/batch",
-            params={"fields": "title,year,venue,references"},
+            params={"fields": "title,year,venue,references,abstract"},
             json={"ids": paper_ids},
             headers=headers,
             timeout=30,
@@ -70,30 +70,15 @@ class Prenode:
 class Node:
     curr_k: int
     paper_id: str
+    parent_id: str
     title: str
     year: int
     venue: str = ""
 
     @staticmethod
-    def from_paper_id(paper_id: str, curr_k: int) -> tuple["Node", list[Prenode]]:
-        res_json = request_uid(paper_id)
-        return Node(
-            curr_k=curr_k,
-            paper_id=res_json["paperId"],
-            title=res_json["title"],
-            year=res_json["year"],
-            venue=res_json.get("venue", ""),
-        ), [
-            Prenode(
-                curr_k=curr_k + 1,
-                paper_id=ref_json["paperId"],
-                parent_id=paper_id,
-            )
-            for ref_json in res_json.get("references", [])
-        ]
-
-    @staticmethod
-    def from_prenodes(prenodes: list[Prenode]) -> tuple[list["Node"], list[Prenode]]:
+    def from_prenodes(
+        prenodes: list[Prenode], keywords: list[str]
+    ) -> tuple[list["Node"], list[Prenode]]:
         nodes = []
         pending_nodes = []
 
@@ -102,14 +87,19 @@ class Node:
         res_jsons = request_uids(uids)
 
         for i, res_json in enumerate(res_jsons):
-            k = prenodes[i].curr_k
+            curr_prenode = prenodes[i]
+            k = curr_prenode.curr_k
             node_paper_id = res_json["paperId"]
             node_title = res_json["title"]
             node_year = res_json["year"]
+            node_abstract = res_json.get("abstract", "")
+            summary = node_title + node_abstract
 
             if node_paper_id is None or node_title is None or node_year is None:
                 continue
-            if node_title == "":
+            if node_title.strip() == "":
+                continue
+            if not any(keyword in summary for keyword in keywords):
                 continue
 
             references = res_json.get("references", [])
@@ -127,6 +117,7 @@ class Node:
                 Node(
                     curr_k=k,
                     paper_id=res_json["paperId"],
+                    parent_id=curr_prenode.parent_id,
                     title=res_json["title"],
                     year=res_json["year"],
                     venue=res_json.get("venue", ""),
@@ -146,4 +137,5 @@ if __name__ == "__main__":
     #         ]
     #     )[0]
     # )
-    print(Node.from_paper_id("649def34f8be52c8b66281af98ae884c09aef38b", 0)[1])
+    # print(Node.from_paper_id("649def34f8be52c8b66281af98ae884c09aef38b", 0)[1])
+    print(request_uids(["649def34f8be52c8b66281af98ae884c09aef38b"]))

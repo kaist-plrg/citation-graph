@@ -14,6 +14,7 @@ class CitationGraph:
     title: str
     k: int
     seed_title_ids: list[str]
+    keywords: list[str]
     pending_prenodes: list[Prenode] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     edges: list[tuple[str, str]] = field(default_factory=list)
@@ -33,6 +34,9 @@ class CitationGraph:
     def paper_id_to_title(self, paper_id: str) -> str:
         node = self.find_by_paper_id(paper_id)
         return node.title if node else ""
+
+    def filename(self) -> str:
+        return f"{self.title}_k{self.k}_{"_".join(self.keywords)}"
 
     def update_k(self, title: str, new_k: int):
         node = self.find_by_paper_id(title)
@@ -71,11 +75,11 @@ class CitationGraph:
             if not curr_prenodes:
                 return False
 
-            self.edges.extend(
-                [(prenode.parent_id, prenode.paper_id) for prenode in curr_prenodes]
-            )
+            nodes, pending_nodes = Node.from_prenodes(curr_prenodes, self.keywords)
 
-            nodes, pending_nodes = Node.from_prenodes(curr_prenodes)
+            self.edges.extend(
+                [(node.parent_id, node.paper_id) for node in nodes]
+            )
 
             self.nodes.extend(nodes)
             self.pending_prenodes.extend(pending_nodes)
@@ -86,7 +90,7 @@ class CitationGraph:
 
     def dump_json_file(self, alternative_filename: str = None):
         title = alternative_filename if alternative_filename else self.title
-        with open(f"{title}_k{self.k}.json", "w") as f:
+        with open(f"{self.filename()}.json", "w") as f:
             f.write(self.to_json(indent=4))
 
     def export_dot_file(self, min_impact: int = 3):
@@ -94,7 +98,11 @@ class CitationGraph:
         edges = [
             (parent, child)
             for parent, child in self.edges
-            if counter[child] >= min_impact
+            if (counter[child] >= min_impact or counter[parent] >= min_impact)
+            and self.find_by_paper_id(child) is not None
+            and self.find_by_paper_id(parent) is not None
+            # and self.find_by_paper_id(child).title.strip() != ""
+            # and "quantum" in self.find_by_paper_id(child).title.lower()
         ]
         nodes = sorted(
             set([node for edge in edges for node in edge]),
@@ -112,12 +120,12 @@ class CitationGraph:
 
         nxgraph.add_edges_from(edges_index)
 
-        write_dot(nxgraph, f"{self.title}_k{self.k}.dot")
+        write_dot(nxgraph, f"{self.filename()}.dot")
 
-        with open(f"{self.title}_k{self.k}_index.txt", "w") as f:
+        with open(f"{self.filename()}_index.txt", "w") as f:
             f.writelines(
                 [
-                    f"{i:4} {self.paper_id_to_title(node)}\n"
+                    f"{i:4} {self.paper_id_to_title(node)} ({counter[node]}, {node})\n"
                     for i, node in enumerate(nodes)
                 ]
             )

@@ -15,13 +15,13 @@ If you have an API key, you can set it as an environment variable `SS_API_KEY`.
 Execute the script from the command line as follows:
 
 ```bash
-$ python main.py <seed-id-file> --depth <depth> --min-impact <min-impact>
+$ python main.py <seed-id-file> --depth <depth> --min-impact <min-impact> --keywords <keywords>
 ```
 
 * `<seed-id-file>` : A text file containing paper IDs from the Semantic Scholar website. To obtain the paper ID, visit the paper page and extract the ID from the URL (e.g., `https://www.semanticscholar.org/paper/paper-title-goes-here/<paper-id>`). Each ID serves as a starting point to build the citation graph.
 * `<depth>`: The maximum citation depth (optional, default is 2).
 * `<min-impact>` The minimum number of citations needed for a paper to be included in the output (optional, default is 3).
-
+* `<keywords>`: A list of keywords (separated by comma). Papers are filtered to have at least one of the keywords in their title or abstract (optional, default is empty).
 ### Example
 
 Assuming the seed paper IDs are in a file named `programming_languages.txt`
@@ -35,7 +35,7 @@ c54604dcc058b7526035d93646f2d7dec2c46668
 To generate the graph, run:
 
 ```bash
-python main.py programming_languages.txt --depth 2 --min-impact 1
+python main.py programming_languages.txt --depth 2 --min-impact 1 --keywords programming,language
 ```
 
 Next, to visualize the graph using Graphviz:

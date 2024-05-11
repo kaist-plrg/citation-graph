@@ -13,6 +13,12 @@ parser.add_argument(
     help="maximum depth of the graph. default is 2",
 )
 parser.add_argument(
+    "--keywords",
+    type=str,
+    default="",
+    help="Searchs papers whose title or abstract contains the keyword. Separated by comma. default is empty",
+)
+parser.add_argument(
     "--min-impact",
     type=int,
     default=3,
@@ -24,6 +30,7 @@ if __name__ == "__main__":
     graph_title = args.seed_id_file.split(".")[0]
     min_impact = args.min_impact
     graph_k = args.depth
+    keywords = [keyword for keyword in args.keywords.split(",") if keyword]
     if graph_k < 1:
         print("Depth must be greater than 0")
         exit(1)
@@ -32,16 +39,18 @@ if __name__ == "__main__":
         print("Minimum impact must be greater than 0")
         exit(1)
 
-    with open(args.seed_id_file, "r") as f:
-        seed_id_list = [paper_id.strip() for paper_id in f.readlines()]
-
-    json_file = f"{graph_title}_k{graph_k}.json"
+    json_file = f"{graph_title}_k{graph_k}_{"_".join(keywords)}.json"
     if not path.exists(json_file):
         if not path.exists(args.seed_id_file):
             print("Seed file not found")
             exit(1)
 
-        graph = CitationGraph(graph_title, graph_k, seed_id_list)
+        with open(args.seed_id_file, "r") as f:
+            seed_id_list = [paper_id.strip() for paper_id in f.readlines()]
+
+        graph = CitationGraph(
+            title=graph_title, k=graph_k, seed_title_ids=seed_id_list, keywords=keywords
+        )
         graph.init_seed()
     else:
         print("Loading existing json file")
