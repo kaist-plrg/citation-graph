@@ -77,7 +77,7 @@ class Node:
 
     @staticmethod
     def from_prenodes(
-        prenodes: list[Prenode], keywords: list[str]
+        prenodes: list[Prenode], keywords: list[list[str]]
     ) -> tuple[list["Node"], list[Prenode]]:
         nodes = []
         pending_nodes = []
@@ -99,7 +99,9 @@ class Node:
                 continue
             if node_title.strip() == "":
                 continue
-            if not any(keyword in summary for keyword in keywords):
+            if not any(
+                all(keyword in summary for keyword in clause) for clause in keywords
+            ):
                 continue
 
             references = res_json.get("references", [])

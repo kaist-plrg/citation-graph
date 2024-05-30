@@ -30,7 +30,11 @@ if __name__ == "__main__":
     graph_title = args.seed_id_file.split(".")[0]
     min_impact = args.min_impact
     graph_k = args.depth
-    keywords = [keyword.lower() for keyword in args.keywords.split(",") if keyword]
+    keywords = [
+        [keyword.strip() for keyword in keyword_clause.split(".") if keyword.strip()]
+        for keyword_clause in args.keywords.split(",")
+        if keyword_clause.strip()
+    ]
     if graph_k < 1:
         print("Depth must be greater than 0")
         exit(1)
@@ -39,7 +43,9 @@ if __name__ == "__main__":
         print("Minimum impact must be greater than 0")
         exit(1)
 
-    json_file = f"{graph_title}_k{graph_k}_{'_'.join(keywords)}.json"
+    json_file = (
+        f"{graph_title}_k{graph_k}_{'_'.join(['_'.join(k) for k in keywords])}.json"
+    )
     if not path.exists(json_file):
         if not path.exists(args.seed_id_file):
             print("Seed file not found")

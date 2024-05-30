@@ -14,7 +14,7 @@ class CitationGraph:
     title: str
     k: int
     seed_title_ids: list[str]
-    keywords: list[str]
+    keywords: list[list[str]]
     pending_prenodes: list[Prenode] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     edges: list[tuple[str, str]] = field(default_factory=list)
@@ -36,7 +36,9 @@ class CitationGraph:
         return node.title if node else ""
 
     def filename(self) -> str:
-        return f"{self.title}_k{self.k}_{'_'.join(self.keywords)}"
+        return (
+            f"{self.title}_k{self.k}_{'_'.join(['_'.join(k) for k in self.keywords])}"
+        )
 
     def update_k(self, title: str, new_k: int):
         node = self.find_by_paper_id(title)
