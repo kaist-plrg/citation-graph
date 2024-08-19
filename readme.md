@@ -21,7 +21,7 @@ $ python main.py <seed-id-file> --depth <depth> --min-impact <min-impact> --keyw
 * `<seed-id-file>` : A text file containing paper IDs from the Semantic Scholar website. To obtain the paper ID, visit the paper page and extract the ID from the URL (e.g., `https://www.semanticscholar.org/paper/paper-title-goes-here/<paper-id>`). Each ID serves as a starting point to build the citation graph.
 * `<depth>`: The maximum citation depth (optional, default is 2).
 * `<min-impact>` The minimum number of citations needed for a paper to be included in the output (optional, default is 3).
-* `<keywords>`: A list of keywords (separated by comma). Papers are filtered to have at least one of the keywords in their title or abstract (optional, default is empty).
+* `<keywords>`: A list of keywords (separated by comma(`OR`) and ".."(`AND`); CNF). Papers are filtered to have at least one of the keywords in their title or abstract (optional, default is empty).
 ### Example
 
 Assuming the seed paper IDs are in a file named `programming_languages.txt`

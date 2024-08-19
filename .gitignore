@@ -6,4 +6,5 @@ util/__pycache__
 *.dot
 *.json
 *.txt
+.DS_STORE
 !requirements.txt

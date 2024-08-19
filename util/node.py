@@ -23,7 +23,7 @@ def request_uids(paper_ids: list[str]):
         headers = {"x-api-key": api_key} if api_key else {}
         res = requests.post(
             "https://api.semanticscholar.org/graph/v1/paper/batch",
-            params={"fields": "title,year,venue,references,abstract"},
+            params={"fields": "title,year,venue,references,citations,abstract"},
             json={"ids": paper_ids},
             headers=headers,
             timeout=30,
@@ -77,7 +77,10 @@ class Node:
 
     @staticmethod
     def from_prenodes(
-        prenodes: list[Prenode], keywords: list[list[str]]
+        prenodes: list[Prenode],
+        keywords: list[list[str]],
+        filter_by_title: bool,
+        search_direction: str,
     ) -> tuple[list["Node"], list[Prenode]]:
         nodes = []
         pending_nodes = []
@@ -93,19 +96,32 @@ class Node:
             node_title = res_json["title"]
             node_year = res_json["year"]
             node_abstract = res_json["abstract"] or ""
-            summary = (node_title + node_abstract).lower()
+            summary = node_title if filter_by_title else node_title + node_abstract
 
             if node_paper_id is None or node_title is None or node_year is None:
                 continue
             if node_title.strip() == "":
                 continue
-            if not any(
-                all(keyword in summary for keyword in clause) for clause in keywords
+
+            if not all(
+                any(
+                    (
+                        keyword in summary.lower()
+                        if keyword.islower()
+                        else keyword in summary
+                    )
+                    for keyword in clause
+                )
+                for clause in keywords
             ):
                 continue
 
-            references = res_json.get("references", [])
-            for ref_json in references:
+            refs_or_cites = (
+                res_json.get("references", [])
+                if search_direction == "past"
+                else res_json.get("citations", [])
+            )
+            for ref_json in refs_or_cites:
                 ref_paper_id = ref_json["paperId"]
                 if ref_paper_id:
                     pending_nodes.append(
